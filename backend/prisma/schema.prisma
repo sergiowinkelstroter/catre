@@ -1,0 +1,118 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id             Int             @id @default(autoincrement())
+  name           String
+  email          String          @unique
+  phone          String
+  password       String
+  role           Role
+  membershipType MembershipType?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  reservations Reservation[]
+  events       Event[]       @relation("UserEvents")
+  payments     Payment[]
+  enrollments  Enrollment[]
+
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  MEMBER
+}
+
+enum MembershipType {
+  INDIVIDUAL
+  FAMILY
+}
+
+model Reservation {
+  id         Int      @id @default(autoincrement())
+  date       DateTime
+  facilityId Int
+  userId     Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  facility Facility @relation(fields: [facilityId], references: [id])
+  user     User     @relation(fields: [userId], references: [id])
+
+  @@map("reservations")
+}
+
+model Enrollment {
+  id             Int     @id @default(autoincrement())
+  name           String
+  age            Int
+  church         String
+  email          String? // Optional
+  eventId        Int
+  event          Event   @relation(fields: [eventId], references: [id])
+  userId         Int? // Can be null if the registrant is not a registered user
+  user           User?   @relation(fields: [userId], references: [id])
+  enrollmentType String // "FREE" or "PAID"
+}
+
+model Event {
+  id                   Int      @id @default(autoincrement())
+  title                String
+  description          String
+  date                 DateTime
+  registrationDeadline DateTime
+  facilityId           Int
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  facility    Facility     @relation(fields: [facilityId], references: [id])
+  users       User[]       @relation("UserEvents")
+  enrollments Enrollment[]
+
+  @@map("events")
+}
+
+model Facility {
+  id           Int            @id @default(autoincrement())
+  name         String
+  description  String
+  status       FacilityStatus
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  reservations Reservation[]
+  events       Event[]
+
+  @@map("facilities")
+}
+
+enum FacilityStatus {
+  AVAILABLE
+  UNAVAILABLE
+  MAINTENANCE
+}
+
+model Payment {
+  id        Int           @id @default(autoincrement())
+  amount    Float
+  status    PaymentStatus
+  userId    Int
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      User          @relation(fields: [userId], references: [id])
+
+  @@map("payments")
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  CANCELED
+}
